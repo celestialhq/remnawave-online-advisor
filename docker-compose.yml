@@ -1,0 +1,9 @@
+services:
+  remnawave-online-advisor:
+    build: .
+    container_name: remnawave-online-advisor
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
