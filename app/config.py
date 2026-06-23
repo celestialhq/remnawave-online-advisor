@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     API_RETRIES: int = 3
     API_RETRY_DELAY_SECONDS: float = 1.0
 
-    EXCLUDED_TAGS: list[str] = Field(default_factory=list)
+    EXCLUDED_TAGS: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
     DATABASE_PATH: str = "data/online_advisor.sqlite3"
     POLL_INTERVAL_SECONDS: int = 30
