@@ -48,7 +48,7 @@ async def send_daily_report_once(settings: Settings, database: Database, bot: Bo
 
     today_stats = database.get_current_daily_stats(report_date)
     yesterday_stats = database.get_history_for_date(yesterday_date)
-    report_text = build_daily_report(today_stats, yesterday_stats)
+    report_text = build_daily_report(today_stats, yesterday_stats, report_date=report_date)
 
     try:
         await send_telegram_report(

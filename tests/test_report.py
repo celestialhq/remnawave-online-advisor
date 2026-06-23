@@ -1,4 +1,4 @@
-from app.report import build_daily_report, trend_arrow
+from app.report import build_daily_report, country_flag, trend_arrow
 from app.stats import DailyNodeStat, HistoryNodeStat
 
 
@@ -7,6 +7,12 @@ def test_trend_arrow():
     assert trend_arrow(99, 100) == " 🔻"
     assert trend_arrow(100, 100) == ""
     assert trend_arrow(100, None) == ""
+
+
+def test_country_flag_supports_codes_and_names():
+    assert country_flag("fi") == "🇫🇮"
+    assert country_flag("finland") == "🇫🇮"
+    assert country_flag("unknown-country") == "🌐"
 
 
 def test_build_daily_report_groups_by_country_and_prints_each_node_separately():
@@ -66,18 +72,24 @@ def test_build_daily_report_groups_by_country_and_prints_each_node_separately():
         ),
     }
 
-    assert build_daily_report(today, yesterday) == (
-        "finland:\n\n"
-        "Finland 1:\n"
-        "Максимальный онлайн: 100 🔺\n"
-        "Средний онлайн: 55 🔻\n\n"
-        "Finland 2:\n"
-        "Максимальный онлайн: 3 🔻\n"
-        "Средний онлайн: 2\n\n"
-        "germany:\n\n"
-        "Germany 1:\n"
-        "Максимальный онлайн: 100\n"
-        "Средний онлайн: 50 🔺"
+    assert build_daily_report(today, yesterday, report_date="2026-06-23") == (
+        "📊 <b>Online Advisor</b>\n"
+        "🗓 <code>2026-06-23</code>\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "🇫🇮 <b>FINLAND</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "▫️ <b>Finland 1</b>\n"
+        "├ Максимальный онлайн: <b>100</b> 🔺\n"
+        "└ Средний онлайн: <b>55</b> 🔻\n\n"
+        "▫️ <b>Finland 2</b>\n"
+        "├ Максимальный онлайн: <b>3</b> 🔻\n"
+        "└ Средний онлайн: <b>2</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "🇩🇪 <b>GERMANY</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "▫️ <b>Germany 1</b>\n"
+        "├ Максимальный онлайн: <b>100</b>\n"
+        "└ Средний онлайн: <b>50</b> 🔺"
     )
 
 
@@ -95,8 +107,30 @@ def test_build_daily_report_omits_arrows_when_no_yesterday_data():
     ]
 
     assert build_daily_report(today, {}) == (
-        "unknown:\n\n"
-        "Unknown 1:\n"
-        "Максимальный онлайн: 3\n"
-        "Средний онлайн: 2.5"
+        "📊 <b>Online Advisor</b>\n\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "🌐 <b>UNKNOWN</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "▫️ <b>Unknown 1</b>\n"
+        "├ Максимальный онлайн: <b>3</b>\n"
+        "└ Средний онлайн: <b>2.5</b>"
     )
+
+
+def test_build_daily_report_escapes_html_in_node_and_country_names():
+    today = [
+        DailyNodeStat(
+            date="2026-06-23",
+            node_uuid="bad-html",
+            node_name="Node <main> & backup",
+            country_code="x<y",
+            max_online=1,
+            sum_online=1,
+            samples_count=1,
+        )
+    ]
+
+    report = build_daily_report(today, {})
+
+    assert "<b>X&lt;Y</b>" in report
+    assert "<b>Node &lt;main&gt; &amp; backup</b>" in report
