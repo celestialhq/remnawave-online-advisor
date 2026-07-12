@@ -1,6 +1,8 @@
 services:
   remnawave-online-advisor:
-    build: .
+    image: ghcr.io/celestialhq/remnawave-online-advisor:latest
+    # Use the prebuilt GHCR image by default; uncomment to build locally instead.
+    # build: .
     container_name: remnawave-online-advisor
     env_file:
       - .env

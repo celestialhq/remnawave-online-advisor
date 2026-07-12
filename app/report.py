@@ -120,12 +120,12 @@ def format_node_block(row: DailyNodeStat, yesterday: HistoryNodeStat | None) -> 
         [
             f"▫️ <b>{escape(row.node_name)}</b>",
             format_metric_line(
-                "Максимальный онлайн",
+                "Max online",
                 row.max_online,
                 trend_arrow(row.max_online, yesterday_max),
             ),
             format_metric_line(
-                "Средний онлайн",
+                "Avg online",
                 row.avg_online,
                 trend_arrow(row.avg_online, yesterday_avg),
                 is_last=True,
@@ -145,7 +145,7 @@ def build_daily_report(
         title_lines.append(f"🗓 <code>{escape(report_date)}</code>")
 
     if not rows:
-        return "\n".join([*title_lines, "", "Нет данных за сегодня."])
+        return "\n".join([*title_lines, "", "No data for today."])
 
     grouped: dict[str, list[DailyNodeStat]] = defaultdict(list)
     for row in rows:

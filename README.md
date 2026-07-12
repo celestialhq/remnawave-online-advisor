@@ -1,33 +1,70 @@
 # Remnawave Online Advisor
 
-Telegram-бот на aiogram 3, который каждые 30 секунд получает список нод из Remnawave, фильтрует ноды по тегам, хранит дневные агрегаты в SQLite и отправляет ежедневный отчёт в Telegram.
+A Telegram bot (aiogram 3) that polls the Remnawave node list every 30 seconds,
+filters nodes by tags, stores daily aggregates in SQLite, and posts a daily
+report to Telegram.
 
-Главная логика отчёта: данные группируются по `countryCode` и **каждая нода внутри страны выводится отдельно**.
+Report logic: data is grouped by `countryCode`, and **each node inside a country
+is reported separately**.
 
-## Возможности
+## Features
 
-- GET `/api/nodes` от `API_BASE_URL`.
-- Авторизация через HTTP-заголовок `Authorization: Bearer <API_TOKEN>`.
-- Таймаут API: 10 секунд по умолчанию.
-- До 3 повторов при временных ошибках: timeout, сетевые ошибки, HTTP 429/5xx.
-- Фильтрация нод по `EXCLUDED_TAGS`.
-- Нормализация `countryCode`: пустой код попадает в `unknown`.
-- Хранение дневных агрегатов **по каждой ноде**: `max_online`, `sum_online`, `samples_count`.
-- Группировка отчёта по `countryCode`, внутри каждой группы — отдельные ноды по `name`.
-- Ежедневный отчёт в Telegram-группу в 23:59 `Europe/Moscow`.
-- После успешной отправки отчёта агрегаты переносятся в `daily_history`, а текущий день очищается.
+- Reads a single endpoint — `GET /api/nodes` from `API_BASE_URL` (see [API key permissions (RBAC)](#api-key-permissions-rbac)).
+- Authentication via the `Authorization: Bearer <API_TOKEN>` header.
+- API timeout: 10 seconds by default.
+- Up to 3 retries on transient errors: timeouts, network errors, HTTP 429/5xx.
+- Node filtering by `EXCLUDED_TAGS`.
+- `countryCode` normalization: an empty code falls back to `unknown`.
+- Per-node daily aggregates: `max_online`, `sum_online`, `samples_count`.
+- Report grouped by `countryCode`, with separate nodes by `name` inside each group.
+- Daily report to a Telegram group at 23:59 `Europe/Moscow`.
+- After a successful report, aggregates are moved to `daily_history` and the current day is cleared.
 - Docker, Docker Compose v2, Railway config.
-- Pytest-тесты для статистики, фильтрации, БД и стрелок в отчёте.
+- Prebuilt image published to GHCR via GitHub Actions.
+- Pytest tests for stats, filtering, storage, and report trend arrows.
 
-## Настройка
+## API key permissions (RBAC)
 
-Скопируйте пример переменных окружения:
+Remnawave now supports RBAC API tokens: access is granted per endpoint rather
+than "all or nothing". The advisor only needs **read access to a single
+endpoint** — the rest of the API is unnecessary.
+
+| Controller | Method | Endpoint     | Scope  | Why                                                                     |
+| ---------- | ------ | ------------ | ------ | ----------------------------------------------------------------------- |
+| **Nodes**  | `GET`  | `/api/nodes` | `Read` | Fetch the node list: `name`, `countryCode`, `usersOnline`, `tags`, `uuid` |
+
+The advisor **does not** write anything to Remnawave and never touches users,
+HWID devices, subscriptions, etc. The token needs no `Write` scope and no other
+controllers.
+
+### Creating a minimal token
+
+1. In the Remnawave panel, open **Create API token**.
+2. Set a **Token name** (e.g. `online-advisor`) and a **Lifetime (days)**.
+3. Do **not** click "Full access". Instead, expand the **Nodes** controller and
+   enable **`Read`** on the `GET /api/nodes` endpoint only. (Granting `Read` on
+   the whole Nodes controller is also fine — it exposes nothing beyond the node
+   list.)
+4. Click **Create** and copy the token — it is shown only once.
+5. Put it into `.env`:
+
+   ```env
+   API_TOKEN=<the-copied-token>
+   ```
+
+The advisor prepends `Bearer ` automatically, so `API_TOKEN` only needs the raw
+token (a value that already starts with `Bearer ` is also accepted and won't be
+duplicated).
+
+## Configuration
+
+Copy the environment example:
 
 ```bash
 cp .env.example .env
 ```
 
-Заполните `.env`:
+Fill in `.env`:
 
 ```env
 TELEGRAM_BOT_TOKEN=123456:telegram-bot-token
@@ -41,77 +78,89 @@ EXCLUDED_TAGS=internal,test
 DATABASE_PATH=data/online_advisor.sqlite3
 ```
 
-`EXCLUDED_TAGS` можно задавать как строку через запятую:
+`EXCLUDED_TAGS` can be a comma-separated string:
 
 ```env
 EXCLUDED_TAGS=internal,test,disabled
 ```
 
-или как JSON-массив:
+or a JSON array:
 
 ```env
 EXCLUDED_TAGS=["internal", "test", "disabled"]
 ```
 
-## Локальный запуск без Docker
+## Local run (uv)
+
+The project uses [uv](https://docs.astral.sh/uv/) for dependency management.
 
 ```bash
-python3.14 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python -m app.main
+uv sync            # create the venv and install dependencies from uv.lock
+uv run python -m app.main
 ```
 
-## Запуск через Docker Compose v2
+## Run with Docker Compose v2
+
+By default `docker-compose.yml` pulls the prebuilt image from GHCR:
 
 ```bash
-docker compose up --build -d
+docker compose up -d
 ```
 
-Логи:
+To build locally instead, uncomment `build: .` in `docker-compose.yml` and run
+`docker compose up --build -d`.
+
+Logs:
 
 ```bash
-docker compose logs -f online-advisor
+docker compose logs -f remnawave-online-advisor
 ```
 
-Остановка:
+Stop:
 
 ```bash
 docker compose down
 ```
 
-## Railway
+## Prebuilt image (GHCR)
 
-Проект содержит `railway.json` и `Dockerfile`. На Railway нужно добавить переменные окружения из `.env.example` в Variables. SQLite-файл по умолчанию хранится в `data/online_advisor.sqlite3`; для production лучше подключить volume и указать `DATABASE_PATH` внутри примонтированной директории.
-
-## Формат отчёта
-
-```text
-finland:
-
-Finland Node 1:
-Максимальный онлайн: 100 🔺
-Средний онлайн: 55 🔻
-
-Finland Node 2:
-Максимальный онлайн: 3 🔻
-Средний онлайн: 1
-
-germany:
-
-Germany Node 1:
-Максимальный онлайн: 100 🔺
-Средний онлайн: 55
-```
-
-Стрелка ставится при сравнении с данными этой же ноды за вчерашний день из `daily_history`:
-
-- `🔺` — сегодняшнее значение больше вчерашнего.
-- `🔻` — сегодняшнее значение меньше вчерашнего.
-- нет знака — значения равны или вчерашних данных нет.
-
-## Тесты
+Every push to `main` builds and publishes an image to the GitHub Container
+Registry via [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml):
 
 ```bash
-pytest
+docker pull ghcr.io/celestialhq/remnawave-online-advisor:latest
+```
+
+## Railway
+
+The project ships `railway.json` and a `Dockerfile`. On Railway, add the
+variables from `.env.example` to Variables. The SQLite file defaults to
+`data/online_advisor.sqlite3`; for production, attach a volume and point
+`DATABASE_PATH` inside the mounted directory.
+
+## Report format
+
+```text
+━━━━━━━━━━━━━━━━━━━━
+🇫🇮 FINLAND
+━━━━━━━━━━━━━━━━━━━━
+▫️ Finland Node 1
+├ Max online: 100 🔺
+└ Avg online: 55 🔻
+
+▫️ Finland Node 2
+├ Max online: 3 🔻
+└ Avg online: 1
+```
+
+The arrow compares against the same node's values from yesterday in `daily_history`:
+
+- `🔺` — today's value is higher than yesterday's.
+- `🔻` — today's value is lower than yesterday's.
+- no arrow — values are equal or there is no data for yesterday.
+
+## Tests
+
+```bash
+uv run pytest
 ```

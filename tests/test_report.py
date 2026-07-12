@@ -79,17 +79,17 @@ def test_build_daily_report_groups_by_country_and_prints_each_node_separately():
         "🇫🇮 <b>FINLAND</b>\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "▫️ <b>Finland 1</b>\n"
-        "├ Максимальный онлайн: <b>100</b> 🔺\n"
-        "└ Средний онлайн: <b>55</b> 🔻\n\n"
+        "├ Max online: <b>100</b> 🔺\n"
+        "└ Avg online: <b>55</b> 🔻\n\n"
         "▫️ <b>Finland 2</b>\n"
-        "├ Максимальный онлайн: <b>3</b> 🔻\n"
-        "└ Средний онлайн: <b>2</b>\n\n"
+        "├ Max online: <b>3</b> 🔻\n"
+        "└ Avg online: <b>2</b>\n\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "🇩🇪 <b>GERMANY</b>\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "▫️ <b>Germany 1</b>\n"
-        "├ Максимальный онлайн: <b>100</b>\n"
-        "└ Средний онлайн: <b>50</b> 🔺"
+        "├ Max online: <b>100</b>\n"
+        "└ Avg online: <b>50</b> 🔺"
     )
 
 
@@ -112,8 +112,8 @@ def test_build_daily_report_omits_arrows_when_no_yesterday_data():
         "🌐 <b>UNKNOWN</b>\n"
         "━━━━━━━━━━━━━━━━━━━━\n"
         "▫️ <b>Unknown 1</b>\n"
-        "├ Максимальный онлайн: <b>3</b>\n"
-        "└ Средний онлайн: <b>2.5</b>"
+        "├ Max online: <b>3</b>\n"
+        "└ Avg online: <b>2.5</b>"
     )
 
 
